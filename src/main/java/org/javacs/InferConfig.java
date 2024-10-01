@@ -69,6 +69,9 @@ class InferConfig {
         // Maven
         var pomXml = workspaceRoot.resolve("pom.xml");
         if (Files.exists(pomXml)) {
+		LOG.info("!!!!!!!!!!!!!!!!!!!!!!!");
+		LOG.info("found pom.xml");
+		LOG.info("!!!!!!!!!!!!!!!!!!!!!!!");
             return mvnDependencies(pomXml, "dependency:list");
         }
 
