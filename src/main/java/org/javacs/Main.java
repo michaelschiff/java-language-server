@@ -26,7 +26,6 @@ public class Main {
         try {
             // Logger.getLogger("").addHandler(new FileHandler("javacs.%u.log", false));
             setRootFormat();
-
             LSP.connect(JavaLanguageServer::new, System.in, System.out);
         } catch (Throwable t) {
             LOG.log(Level.SEVERE, t.getMessage(), t);

@@ -1,6 +1,8 @@
 package org.javacs;
 
 import com.google.gson.JsonElement;
+
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.Consumer;
@@ -16,8 +18,10 @@ public class LanguageServerFixture {
         Main.setRootFormat();
     }
 
-    public static CompilerProvider getCompilerProvider() {
-        return getJavaLanguageServer().compiler();
+    public static CompilerProvider getCompilerProvider() throws IOException
+    {
+      JavaLanguageServer jls = getJavaLanguageServer();
+      return jls.compiler();
     }
 
     static JavaLanguageServer getJavaLanguageServer() {

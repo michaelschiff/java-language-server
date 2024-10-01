@@ -3,15 +3,25 @@ package org.javacs.rewrite;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import org.javacs.CompilerProvider;
 import org.javacs.LanguageServerFixture;
 import org.junit.Test;
 
 public class RewriteTest {
-    static final CompilerProvider compiler = LanguageServerFixture.getCompilerProvider();
+    static final CompilerProvider compiler;
 
-    private Path file(String name) {
+  static {
+    try {
+      compiler = LanguageServerFixture.getCompilerProvider();
+    }
+    catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private Path file(String name) {
         return LanguageServerFixture.DEFAULT_WORKSPACE_ROOT
                 .resolve("src/org/javacs/rewrite")
                 .resolve(name)

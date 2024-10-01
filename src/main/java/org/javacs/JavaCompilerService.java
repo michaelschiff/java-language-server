@@ -1,6 +1,8 @@
 package org.javacs;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.*;
 import java.util.*;
 import java.util.function.Predicate;
@@ -8,12 +10,12 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.tools.*;
 
-class JavaCompilerService implements CompilerProvider {
+public class JavaCompilerService implements CompilerProvider {
     // Not modifiable! If you want to edit these, you need to create a new instance
-    final Set<Path> classPath, docPath;
+    final Set<Path> buildJarPaths, sourceCodePaths, sourceJarPaths;
     final Set<String> addExports;
     final ReusableCompiler compiler = new ReusableCompiler();
-    final Docs docs;
+    final SourceLocator sourceLocator;
     final Set<String> jdkClasses = ScanClassPath.jdkTopLevelClasses(), classPathClasses;
     // Diagnostics from the last compilation task
     final List<Diagnostic<? extends JavaFileObject>> diags = new ArrayList<>();
@@ -21,21 +23,20 @@ class JavaCompilerService implements CompilerProvider {
     // TODO intercept files that aren't in the batch and erase method bodies so compilation is faster
     final SourceFileManager fileManager;
 
-    JavaCompilerService(Set<Path> classPath, Set<Path> docPath, Set<String> addExports) {
-        System.err.println("Class path:");
-        for (var p : classPath) {
-            System.err.println("  " + p);
-        }
-        System.err.println("Doc path:");
-        for (var p : docPath) {
-            System.err.println("  " + p);
-        }
+    public JavaCompilerService(Set<Path> classPath, Set<Path> sourcePaths, Set<Path> sourceJarPaths, Set<String> addExports)
+        throws IOException
+    {
+        LOG.info(String.format("~~~Found %d compile time jars", classPath.size()));
+        LOG.info(String.format("~~~Found %d source code files", sourcePaths.size()));
+        LOG.info(String.format("~~~Found %d source jars", sourceJarPaths.size()));
+
         // classPath can't actually be modified, because JavaCompiler remembers it from task to task
-        this.classPath = Collections.unmodifiableSet(classPath);
-        this.docPath = Collections.unmodifiableSet(docPath);
+        this.buildJarPaths = Collections.unmodifiableSet(classPath);
+        this.sourceCodePaths = Collections.unmodifiableSet(sourcePaths);
+        this.sourceJarPaths = Collections.unmodifiableSet(sourceJarPaths);
         this.addExports = Collections.unmodifiableSet(addExports);
-        this.docs = new Docs(docPath);
-        this.classPathClasses = ScanClassPath.classPathTopLevelClasses(classPath);
+        this.sourceLocator = new SourceLocator(this.sourceCodePaths, this.sourceJarPaths);
+        this.classPathClasses = ScanClassPath.classPathTopLevelClasses(this.buildJarPaths);
         this.fileManager = new SourceFileManager();
     }
 
@@ -223,46 +224,18 @@ class JavaCompilerService implements CompilerProvider {
 
     @Override
     public Optional<JavaFileObject> findAnywhere(String className) {
-        var fromDocs = findPublicTypeDeclarationInDocPath(className);
-        if (fromDocs.isPresent()) {
-            return fromDocs;
-        }
-        var fromJdk = findPublicTypeDeclarationInJdk(className);
-        if (fromJdk.isPresent()) {
-            return fromJdk;
-        }
-        var fromSource = findTypeDeclaration(className);
-        if (fromSource != NOT_FOUND) {
-            return Optional.of(new SourceFileObject(fromSource));
-        }
-        return Optional.empty();
-    }
-
-    private Optional<JavaFileObject> findPublicTypeDeclarationInDocPath(String className) {
         try {
-            var found =
-                    docs.fileManager.getJavaFileForInput(
-                            StandardLocation.SOURCE_PATH, className, JavaFileObject.Kind.SOURCE);
-            return Optional.ofNullable(found);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+            JavaFileObject jfo = sourceLocator.findProjectClass(className);
+            if (jfo != null) {
+                return Optional.of(jfo);
+            }
 
-    private Optional<JavaFileObject> findPublicTypeDeclarationInJdk(String className) {
-        try {
-            for (var module : ScanClassPath.JDK_MODULES) {
-                var moduleLocation = docs.fileManager.getLocationForModule(StandardLocation.MODULE_SOURCE_PATH, module);
-                if (moduleLocation == null) continue;
-                var fromModuleSourcePath =
-                        docs.fileManager.getJavaFileForInput(moduleLocation, className, JavaFileObject.Kind.SOURCE);
-                if (fromModuleSourcePath != null) {
-                    LOG.info(String.format("...found %s in module %s of jdk", fromModuleSourcePath.toUri(), module));
-                    return Optional.of(fromModuleSourcePath);
-                }
+            jfo = sourceLocator.findDependencyClass(className);
+            if (jfo != null) {
+                return Optional.of(jfo);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            LOG.severe("failed to search for class: " + className);
         }
         return Optional.empty();
     }
