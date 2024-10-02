@@ -69,9 +69,6 @@ class InferConfig {
         // Maven
         var pomXml = workspaceRoot.resolve("pom.xml");
         if (Files.exists(pomXml)) {
-		LOG.info("!!!!!!!!!!!!!!!!!!!!!!!");
-		LOG.info("found pom.xml");
-		LOG.info("!!!!!!!!!!!!!!!!!!!!!!!");
             return mvnDependencies(pomXml, "dependency:list");
         }
 
@@ -334,7 +331,7 @@ class InferConfig {
     }
 
     private Set<String> bazelQuery(Path bazelWorkspaceRoot, String filterKind) {
-        String[] command = {"bazel", "query", "kind(" + filterKind + ",//...)"};
+        String[] command = {"bazel", "query", "kind(" + filterKind + ",//java/...)"};
         var output = fork(bazelWorkspaceRoot, command);
         if (output == NOT_FOUND) {
             return Set.of();
@@ -364,7 +361,7 @@ class InferConfig {
             if (kindUnion.length() > 0) {
                 kindUnion += " union ";
             }
-            kindUnion += "kind(" + kind + ", ...)";
+            kindUnion += "kind(" + kind + ", //java/...)";
         }
         String[] command = {
             "bazel",
@@ -395,6 +392,7 @@ class InferConfig {
         }
     }
 
+    //TODO(michaelschiff): this is unused
     private Set<String> readActionGraphFromV1(AnalysisProtos.ActionGraphContainer container, String filterArgument) {
         var argumentPaths = new HashSet<String>();
         var outputIds = new HashSet<String>();
@@ -444,13 +442,14 @@ class InferConfig {
                     isFilterArgument = argument.equals(filterArgument);
                     continue;
                 }
+		LOG.info("!!!!! " + argument);
                 argumentPaths.add(argument);
             }
             outputIds.addAll(action.getOutputIdsList());
         }
         var artifactPaths = new HashSet<String>();
         for (var artifact : container.getArtifactsList()) {
-            if (outputIds.contains(artifact.getId()) && !filterArgument.equals("--output")) {
+	    if (outputIds.contains(artifact.getId()) && !filterArgument.equals("--output")) {
                 // artifact is the output of another java action
                 continue;
             }
