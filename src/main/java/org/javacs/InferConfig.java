@@ -413,6 +413,7 @@ class InferConfig {
         }
         var artifactPaths = new HashSet<String>();
         for (var artifact : container.getArtifactsList()) {
+            LOG.info(artifact.getExecPath());
             if (!argumentPaths.contains(artifact.getExecPath())) {
                 // artifact was not specified by --filterArgument
                 continue;
@@ -442,14 +443,13 @@ class InferConfig {
                     isFilterArgument = argument.equals(filterArgument);
                     continue;
                 }
-		LOG.info("!!!!! " + argument);
                 argumentPaths.add(argument);
             }
             outputIds.addAll(action.getOutputIdsList());
         }
         var artifactPaths = new HashSet<String>();
         for (var artifact : container.getArtifactsList()) {
-	    if (outputIds.contains(artifact.getId()) && !filterArgument.equals("--output")) {
+	          if (outputIds.contains(artifact.getId()) && !filterArgument.equals("--output")) {
                 // artifact is the output of another java action
                 continue;
             }

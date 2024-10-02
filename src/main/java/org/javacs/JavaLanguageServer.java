@@ -109,6 +109,8 @@ class JavaLanguageServer extends LanguageServer {
             var docPath = infer.buildDocPath();
 
             javaEndProgress();
+//            docPath.clear();
+//            docPath.add(Path.of("bazel-out/darwin_arm64-fastbuild/bin/external/rules_jvm_external~~maven~maven/com/fasterxml/jackson/core/jackson-annotations/2.12.7/jackson-annotations-2.12.7-sources.jar"));
             return new JavaCompilerService(classPath, docPath, addExports);
         }
     }
@@ -139,6 +141,10 @@ class JavaLanguageServer extends LanguageServer {
         var paths = new HashSet<Path>();
         for (var each : array) {
             paths.add(Paths.get(each.getAsString()).toAbsolutePath());
+        }
+        LOG.info("~~~~DOCS PATH~~~~~");
+        for (Path path : paths) {
+            LOG.info(path.toString());
         }
         return paths;
     }
@@ -308,6 +314,10 @@ class JavaLanguageServer extends LanguageServer {
         var found = new DefinitionProvider(compiler(), file, line, column).find();
         if (found == DefinitionProvider.NOT_SUPPORTED) {
             return Optional.empty();
+        }
+        List<Path> extractedPaths = new ArrayList<>();
+        for (Location loc : found) {
+            LOG.info("definition location: " + loc.uri.toString());
         }
         return Optional.of(found);
     }

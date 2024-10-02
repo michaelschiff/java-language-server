@@ -384,7 +384,6 @@ public class LSP {
                         {
                             var params = gson.fromJson(r.params, TextDocumentPositionParams.class);
                             var response = server.gotoDefinition(params);
-			    LOG.info(response.toString());
                             respond(send, r.id, response);
                             break;
                         }

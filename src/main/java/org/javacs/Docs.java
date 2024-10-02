@@ -17,7 +17,15 @@ public class Docs {
     Docs(Set<Path> docPath) {
         var srcZipPath = srcZip();
         // Path to source .jars + src.zip
-        var sourcePath = new ArrayList<Path>(docPath);
+        var sourcePath = new ArrayList<Path>();
+        for (Path doc : docPath) {
+            try {
+                var fs = FileSystems.newFileSystem(doc, Docs.class.getClassLoader());
+                sourcePath.add(fs.getPath("/"));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
         if (srcZipPath != NOT_FOUND) {
             sourcePath.add(srcZipPath);
         }
