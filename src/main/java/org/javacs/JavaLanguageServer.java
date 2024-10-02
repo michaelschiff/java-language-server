@@ -100,13 +100,13 @@ class JavaLanguageServer extends LanguageServer {
         }
         // Otherwise, combine inference with user-specified external dependencies
         else {
-            var infer = new InferConfig(workspaceRoot, externalDependencies);
+            JarLocator jarLocator = new JarLocator(workspaceRoot, externalDependencies);
 
             javaReportProgress(new JavaReportProgressParams("Inferring class path"));
-            classPath = infer.classPath();
+            classPath = jarLocator.classPath();
 
             javaReportProgress(new JavaReportProgressParams("Inferring doc path"));
-            var docPath = infer.buildDocPath();
+            var docPath = jarLocator.buildSourcePath();
 
             javaEndProgress();
 //            docPath.clear();

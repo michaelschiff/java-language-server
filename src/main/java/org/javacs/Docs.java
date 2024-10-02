@@ -3,6 +3,7 @@ package org.javacs;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -15,17 +16,20 @@ public class Docs {
     final SourceFileManager fileManager = new SourceFileManager();
 
     Docs(Set<Path> docPath) {
-        var srcZipPath = srcZip();
         // Path to source .jars + src.zip
         var sourcePath = new ArrayList<Path>();
         for (Path doc : docPath) {
-            try {
-                var fs = FileSystems.newFileSystem(doc, Docs.class.getClassLoader());
-                sourcePath.add(fs.getPath("/"));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+            if (Files.exists(doc, LinkOption.NOFOLLOW_LINKS)) {
+                try {
+                    var fs = FileSystems.newFileSystem(doc, Docs.class.getClassLoader());
+                    sourcePath.add(fs.getPath("/"));
+                }
+                catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
+        var srcZipPath = srcZip();
         if (srcZipPath != NOT_FOUND) {
             sourcePath.add(srcZipPath);
         }
