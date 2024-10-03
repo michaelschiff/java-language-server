@@ -6,7 +6,7 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
 
-public class DocsTest
+public class SourceLocatorTest
 {
   @Test
   public void testJarSrcs() {

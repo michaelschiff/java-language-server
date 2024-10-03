@@ -4,6 +4,8 @@ import static org.javacs.JsonHelper.GSON;
 
 import com.google.gson.*;
 import com.sun.source.util.Trees;
+
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -25,7 +27,7 @@ import org.javacs.navigation.DefinitionProvider;
 import org.javacs.navigation.ReferenceProvider;
 import org.javacs.rewrite.*;
 
-class JavaLanguageServer extends LanguageServer {
+public class JavaLanguageServer extends LanguageServer {
     // TODO allow multiple workspace roots
     private Path workspaceRoot;
     private final LanguageClient client;
@@ -34,7 +36,8 @@ class JavaLanguageServer extends LanguageServer {
     private JsonObject settings = new JsonObject();
     private boolean modifiedBuild = true;
 
-    JavaCompilerService compiler() {
+    private JavaCompilerService compiler() throws IOException
+    {
         if (needsCompiler()) {
             cacheCompiler = createCompiler();
             cacheSettings = settings;
@@ -70,6 +73,9 @@ class JavaLanguageServer extends LanguageServer {
             var published = Instant.now();
             LOG.info("...published in " + Duration.between(started, published).toMillis() + " ms");
         }
+        catch (IOException e) {
+            LOG.severe("Linting failed: " + e.getMessage());
+        }
     }
 
     private void javaStartProgress(JavaStartProgressParams params) {
@@ -84,7 +90,8 @@ class JavaLanguageServer extends LanguageServer {
         client.customNotification("java/endProgress", JsonNull.INSTANCE);
     }
 
-    private JavaCompilerService createCompiler() {
+    private JavaCompilerService createCompiler() throws IOException
+    {
         Objects.requireNonNull(workspaceRoot, "Can't create compiler because workspaceRoot has not been initialized");
 
         javaStartProgress(new JavaStartProgressParams("Configure javac"));
@@ -105,8 +112,6 @@ class JavaLanguageServer extends LanguageServer {
         var sourceJarPaths = jarLocator.bazelSourceJarPath();
 
         javaEndProgress();
-//            docPath.clear();
-//            docPath.add(Path.of("bazel-out/darwin_arm64-fastbuild/bin/external/rules_jvm_external~~maven~maven/com/fasterxml/jackson/core/jackson-annotations/2.12.7/jackson-annotations-2.12.7-sources.jar"));
         return new JavaCompilerService(classPath, sourcePaths, sourceJarPaths, addExports);
     }
 
@@ -220,7 +225,10 @@ class JavaLanguageServer extends LanguageServer {
 
     @Override
     public List<SymbolInformation> workspaceSymbols(WorkspaceSymbolParams params) {
-        return new SymbolProvider(compiler()).findSymbols(params.query, 50);
+        try {
+            return new SymbolProvider(compiler()).findSymbols(params.query, 50);
+        } catch (IOException e) {}
+        return List.of();
     }
 
     @Override
@@ -262,88 +270,113 @@ class JavaLanguageServer extends LanguageServer {
     public Optional<CompletionList> completion(TextDocumentPositionParams params) {
         if (!FileStore.isJavaFile(params.textDocument.uri)) return Optional.empty();
         var file = Paths.get(params.textDocument.uri);
-        var provider = new CompletionProvider(compiler());
-        var list = provider.complete(file, params.position.line + 1, params.position.character + 1);
-        if (list == CompletionProvider.NOT_SUPPORTED) return Optional.empty();
-        return Optional.of(list);
+        try {
+            var provider = new CompletionProvider(compiler());
+            var list = provider.complete(file, params.position.line + 1, params.position.character + 1);
+            if (list == CompletionProvider.NOT_SUPPORTED) return Optional.empty();
+            return Optional.of(list);
+        } catch (IOException e) {
+            return Optional.empty();
+        }
+
     }
 
     @Override
     public CompletionItem resolveCompletionItem(CompletionItem unresolved) {
-        new HoverProvider(compiler()).resolveCompletionItem(unresolved);
+        try {
+            new HoverProvider(compiler()).resolveCompletionItem(unresolved);
+        } catch (IOException e) {}
         return unresolved;
     }
 
     @Override
     public Optional<Hover> hover(TextDocumentPositionParams position) {
-        var uri = position.textDocument.uri;
-        var line = position.position.line + 1;
-        var column = position.position.character + 1;
-        if (!FileStore.isJavaFile(uri)) return Optional.empty();
-        var file = Paths.get(uri);
-        var list = new HoverProvider(compiler()).hover(file, line, column);
-        if (list == HoverProvider.NOT_SUPPORTED) {
-            return Optional.empty();
-        }
-        // TODO add range
-        return Optional.of(new Hover(list));
+        try {
+            var uri = position.textDocument.uri;
+            var line = position.position.line + 1;
+            var column = position.position.character + 1;
+            if (!FileStore.isJavaFile(uri)) return Optional.empty();
+            var file = Paths.get(uri);
+            var list = new HoverProvider(compiler()).hover(file, line, column);
+            if (list == HoverProvider.NOT_SUPPORTED) {
+                return Optional.empty();
+            }
+            // TODO add range
+            return Optional.of(new Hover(list));
+        } catch (IOException e) {}
+        return Optional.empty();
     }
 
     @Override
     public Optional<SignatureHelp> signatureHelp(TextDocumentPositionParams params) {
-        if (!FileStore.isJavaFile(params.textDocument.uri)) return Optional.empty();
-        var file = Paths.get(params.textDocument.uri);
-        var line = params.position.line + 1;
-        var column = params.position.character + 1;
-        var help = new SignatureProvider(compiler()).signatureHelp(file, line, column);
-        if (help == SignatureProvider.NOT_SUPPORTED) return Optional.empty();
-        return Optional.of(help);
+        try {
+            if (!FileStore.isJavaFile(params.textDocument.uri)) return Optional.empty();
+            var file = Paths.get(params.textDocument.uri);
+            var line = params.position.line + 1;
+            var column = params.position.character + 1;
+            var help = new SignatureProvider(compiler()).signatureHelp(file, line, column);
+            if (help == SignatureProvider.NOT_SUPPORTED) return Optional.empty();
+            return Optional.of(help);
+        } catch (IOException e) {}
+        return Optional.empty();
     }
 
     @Override
     public Optional<List<Location>> gotoDefinition(TextDocumentPositionParams position) {
-        if (!FileStore.isJavaFile(position.textDocument.uri)) return Optional.empty();
-        var file = Paths.get(position.textDocument.uri);
-        var line = position.position.line + 1;
-        var column = position.position.character + 1;
-        var found = new DefinitionProvider(compiler(), file, line, column).find();
-        if (found == DefinitionProvider.NOT_SUPPORTED) {
-            return Optional.empty();
-        }
-        List<Path> extractedPaths = new ArrayList<>();
-        LOG.info("found locations: " + found.size());
-        for (Location loc : found) {
-            LOG.info("definition location: " + loc.uri.toString());
-        }
-        return Optional.of(found);
+        try {
+            if (!FileStore.isJavaFile(position.textDocument.uri)) return Optional.empty();
+            var file = Paths.get(position.textDocument.uri);
+            var line = position.position.line + 1;
+            var column = position.position.character + 1;
+            var found = new DefinitionProvider(compiler(), file, line, column).find();
+            if (found == DefinitionProvider.NOT_SUPPORTED) {
+                return Optional.empty();
+            }
+            List<Path> extractedPaths = new ArrayList<>();
+            LOG.info("found locations: " + found.size());
+            for (Location loc : found) {
+                LOG.info("definition location: " + loc.uri.toString());
+            }
+            return Optional.of(found);
+        } catch (IOException e) {}
+        return Optional.empty();
     }
 
     @Override
     public Optional<List<Location>> findReferences(ReferenceParams position) {
-        if (!FileStore.isJavaFile(position.textDocument.uri)) return Optional.empty();
-        var file = Paths.get(position.textDocument.uri);
-        var line = position.position.line + 1;
-        var column = position.position.character + 1;
-        var found = new ReferenceProvider(compiler(), file, line, column).find();
-        if (found == ReferenceProvider.NOT_SUPPORTED) {
-            return Optional.empty();
-        }
-        return Optional.of(found);
+        try {
+            if (!FileStore.isJavaFile(position.textDocument.uri)) return Optional.empty();
+            var file = Paths.get(position.textDocument.uri);
+            var line = position.position.line + 1;
+            var column = position.position.character + 1;
+            var found = new ReferenceProvider(compiler(), file, line, column).find();
+            if (found == ReferenceProvider.NOT_SUPPORTED) {
+                return Optional.empty();
+            }
+            return Optional.of(found);
+        } catch (IOException e) {}
+        return Optional.empty();
     }
 
     @Override
     public List<SymbolInformation> documentSymbol(DocumentSymbolParams params) {
-        if (!FileStore.isJavaFile(params.textDocument.uri)) return List.of();
-        var file = Paths.get(params.textDocument.uri);
-        return new SymbolProvider(compiler()).documentSymbols(file);
+        try {
+            if (!FileStore.isJavaFile(params.textDocument.uri)) return List.of();
+            var file = Paths.get(params.textDocument.uri);
+            return new SymbolProvider(compiler()).documentSymbols(file);
+        } catch (IOException e) {}
+        return List.of();
     }
 
     @Override
     public List<CodeLens> codeLens(CodeLensParams params) {
-        if (!FileStore.isJavaFile(params.textDocument.uri)) return List.of();
-        var file = Paths.get(params.textDocument.uri);
-        var task = compiler().parse(file);
-        return CodeLensProvider.find(task);
+        try {
+            if (!FileStore.isJavaFile(params.textDocument.uri)) return List.of();
+            var file = Paths.get(params.textDocument.uri);
+            var task = compiler().parse(file);
+            return CodeLensProvider.find(task);
+        } catch (IOException e) {}
+        return List.of();
     }
 
     @Override
@@ -353,20 +386,26 @@ class JavaLanguageServer extends LanguageServer {
 
     @Override
     public List<TextEdit> formatting(DocumentFormattingParams params) {
-        var edits = new ArrayList<TextEdit>();
-        var file = Paths.get(params.textDocument.uri);
-        var fixImports = new AutoFixImports(file).rewrite(compiler()).get(file);
-        Collections.addAll(edits, fixImports);
-        var addOverrides = new AutoAddOverrides(file).rewrite(compiler()).get(file);
-        Collections.addAll(edits, addOverrides);
-        return edits;
+        try {
+            var edits = new ArrayList<TextEdit>();
+            var file = Paths.get(params.textDocument.uri);
+            var fixImports = new AutoFixImports(file).rewrite(compiler()).get(file);
+            Collections.addAll(edits, fixImports);
+            var addOverrides = new AutoAddOverrides(file).rewrite(compiler()).get(file);
+            Collections.addAll(edits, addOverrides);
+            return edits;
+        } catch (IOException e) {}
+        return List.of();
     }
 
     @Override
     public List<FoldingRange> foldingRange(FoldingRangeParams params) {
         if (!FileStore.isJavaFile(params.textDocument.uri)) return List.of();
         var file = Paths.get(params.textDocument.uri);
-        return new FoldProvider(compiler()).foldingRanges(file);
+        try {
+            return new FoldProvider(compiler()).foldingRanges(file);
+        } catch (IOException e) {}
+        return List.of();
     }
 
     @Override
@@ -400,6 +439,9 @@ class JavaLanguageServer extends LanguageServer {
             response.placeholder = el.getSimpleName().toString();
             return Optional.of(response);
         }
+        catch (IOException e) {
+            return Optional.empty();
+        }
     }
 
     private boolean canRename(Element rename) {
@@ -419,21 +461,29 @@ class JavaLanguageServer extends LanguageServer {
     private boolean canFindSource(Element rename) {
         if (rename == null) return false;
         if (rename instanceof TypeElement) {
+
             var type = (TypeElement) rename;
             var name = type.getQualifiedName().toString();
-            return compiler().findTypeDeclaration(name) != CompilerProvider.NOT_FOUND;
+            try {
+                Path typeDeclaration = compiler().findTypeDeclaration(name);
+                return typeDeclaration != CompilerProvider.NOT_FOUND;
+            } catch (IOException e) {
+                return false;
+            }
         }
         return canFindSource(rename.getEnclosingElement());
     }
 
     @Override
     public WorkspaceEdit rename(RenameParams params) {
-        var rw = createRewrite(params);
         var response = new WorkspaceEdit();
-        var map = rw.rewrite(compiler());
-        for (var editedFile : map.keySet()) {
-            response.changes.put(editedFile.toUri(), List.of(map.get(editedFile)));
-        }
+        try {
+            var rw = createRewrite(params);
+            var map = rw.rewrite(compiler());
+            for (var editedFile : map.keySet()) {
+                response.changes.put(editedFile.toUri(), List.of(map.get(editedFile)));
+            }
+        } catch (IOException e) {}
         return response;
     }
 
@@ -457,6 +507,8 @@ class JavaLanguageServer extends LanguageServer {
                 default:
                     return Rewrite.NOT_SUPPORTED;
             }
+        } catch (IOException e) {
+            return Rewrite.NOT_SUPPORTED;
         }
     }
 
@@ -517,11 +569,15 @@ class JavaLanguageServer extends LanguageServer {
 
     @Override
     public List<CodeAction> codeAction(CodeActionParams params) {
-        var provider = new CodeActionProvider(compiler());
-        if (params.context.diagnostics.isEmpty()) {
-            return provider.codeActionsForCursor(params);
-        } else {
-            return provider.codeActionForDiagnostics(params);
+        try {
+            var provider = new CodeActionProvider(compiler());
+            if (params.context.diagnostics.isEmpty()) {
+                return provider.codeActionsForCursor(params);
+            } else {
+                return provider.codeActionForDiagnostics(params);
+            }
+        } catch (IOException e) {
+            return List.of();
         }
     }
 

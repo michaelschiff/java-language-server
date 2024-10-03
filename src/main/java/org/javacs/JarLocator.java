@@ -179,7 +179,7 @@ class JarLocator
                 // artifact was not specified by --filterArgument
                 continue;
             }
-            LOG.info("...found bazel dependency " + relative);
+            LOG.fine("...found bazel dependency " + relative);
             artifactPaths.add(relative);
         }
         return artifactPaths;
@@ -200,7 +200,7 @@ class JarLocator
 
     private static Path fork(Path workspaceRoot, String[] command) {
         try {
-            LOG.info("Running " + String.join(" ", command) + " ...");
+            LOG.fine("Running " + String.join(" ", command) + " ...");
             var output = Files.createTempFile("java-language-server-bazel-output", ".proto");
             var process =
                     new ProcessBuilder()
