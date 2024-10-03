@@ -37,41 +37,57 @@ class JarLocator
     public Set<Path> classPath() {
         var bazelWorkspaceRoot = bazelWorkspaceRoot();
         if (Files.exists(bazelWorkspaceRoot.resolve("WORKSPACE"))) {
-            return bazelClasspath(bazelWorkspaceRoot);
+            var absolute = new HashSet<Path>();
+            for (var relative : bazelAQuery(bazelWorkspaceRoot, "Javac", "--classpath", "java_library", "java_test", "java_binary")) {
+                absolute.add(bazelWorkspaceRoot.resolve(relative));
+            }
+            return absolute;
         }
 
         return Collections.emptySet();
     }
 
-    public Set<Path> buildSourcePath() {
-       // Bazel
+    public Set<Path> bazelSourcepath()
+    {
         var bazelWorkspaceRoot = bazelWorkspaceRoot();
         if (Files.exists(bazelWorkspaceRoot.resolve("WORKSPACE"))) {
-            return bazelSourcepath(bazelWorkspaceRoot);
+            var absolute = new HashSet<Path>();
+            var outputBase = bazelOutputBase(bazelWorkspaceRoot);
+            for (var relative : bazelAQuery(
+                bazelWorkspaceRoot,
+                "JavaSourceJar",
+                "--sources",
+                "java_library",
+                "java_test",
+                "java_binary"
+            )) {
+                absolute.add(outputBase.resolve(relative));
+            }
         }
-
         return Collections.emptySet();
     }
 
-    private Set<Path> bazelClasspath(Path bazelWorkspaceRoot) {
-        var absolute = new HashSet<Path>();
-        for (var relative : bazelAQuery(bazelWorkspaceRoot, "Javac", "--classpath", "java_library", "java_test", "java_binary")) {
-            absolute.add(bazelWorkspaceRoot.resolve(relative));
+    public Set<Path> bazelSourceJarPath() {
+        var bazelWorkspaceRoot = bazelWorkspaceRoot();
+        if (Files.exists(bazelWorkspaceRoot.resolve("WORKSPACE"))) {
+            Set<Path> res = new HashSet<>();
+            for (String relative : bazelAQuery(
+                bazelWorkspaceRoot,
+                "Javac",
+                "--classpath",
+                "java_library",
+                "java_test",
+                "java_binary"
+            )) {
+                Path srcJar = bazelWorkspaceRoot.resolve(relative.strip().replace("header_", "").replace(".jar", "-sources.jar"));
+                if (Files.exists(srcJar)) {
+                    res.add(srcJar);
+                }
+            }
+            return res;
+        } else {
+            return Collections.emptySet();
         }
-        return absolute;
-    }
-
-    private Set<Path> bazelSourcepath(Path bazelWorkspaceRoot) {
-        var absolute = new HashSet<Path>();
-        var outputBase = bazelOutputBase(bazelWorkspaceRoot);
-        for (var relative : bazelAQuery(bazelWorkspaceRoot, "JavaSourceJar", "--sources", "java_library", "java_test", "java_binary")) {
-            absolute.add(outputBase.resolve(relative));
-        }
-        for (String relative : bazelAQuery(bazelWorkspaceRoot, "Javac", "--classpath", "java_library", "java_test", "java_binary")) {
-            Path srcJar = outputBase.resolve(relative.replace("header_", "").replace(".jar", "-sources.jar"));
-            absolute.add(srcJar);
-        }
-        return absolute;
     }
 
     private Path bazelWorkspaceRoot() {

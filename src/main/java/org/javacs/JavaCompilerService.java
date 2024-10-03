@@ -10,7 +10,7 @@ import javax.tools.*;
 
 class JavaCompilerService implements CompilerProvider {
     // Not modifiable! If you want to edit these, you need to create a new instance
-    final Set<Path> classPath, docPath;
+    final Set<Path> buildJarPaths, sourceCodePaths, sourceJarPaths;
     final Set<String> addExports;
     final ReusableCompiler compiler = new ReusableCompiler();
     final Docs docs;
@@ -21,21 +21,29 @@ class JavaCompilerService implements CompilerProvider {
     // TODO intercept files that aren't in the batch and erase method bodies so compilation is faster
     final SourceFileManager fileManager;
 
-    JavaCompilerService(Set<Path> classPath, Set<Path> docPath, Set<String> addExports) {
-        System.err.println("Class path:");
+    JavaCompilerService(Set<Path> classPath, Set<Path> sourcePaths, Set<Path> sourceJarPaths, Set<String> addExports) {
+        LOG.info("~~~Build jar paths:");
         for (var p : classPath) {
-            System.err.println("  " + p);
+            LOG.info("  " + p);
         }
-        System.err.println("Doc path:");
-        for (var p : docPath) {
-            System.err.println("  " + p);
+        LOG.info("~~~Source code paths:");
+        for (var p : sourcePaths) {
+            LOG.info("  " + p);
         }
+
+        LOG.info("~~~Source jar paths:");
+        for (var p : sourceJarPaths) {
+            LOG.info("  " + p);
+        }
+
+
         // classPath can't actually be modified, because JavaCompiler remembers it from task to task
-        this.classPath = Collections.unmodifiableSet(classPath);
-        this.docPath = Collections.unmodifiableSet(docPath);
+        this.buildJarPaths = Collections.unmodifiableSet(classPath);
+        this.sourceCodePaths = Collections.unmodifiableSet(sourcePaths);
+        this.sourceJarPaths = Collections.unmodifiableSet(sourceJarPaths);
         this.addExports = Collections.unmodifiableSet(addExports);
-        this.docs = new Docs(docPath);
-        this.classPathClasses = ScanClassPath.classPathTopLevelClasses(classPath);
+        this.docs = new Docs(this.sourceCodePaths, this.sourceJarPaths);
+        this.classPathClasses = ScanClassPath.classPathTopLevelClasses(this.buildJarPaths);
         this.fileManager = new SourceFileManager();
     }
 

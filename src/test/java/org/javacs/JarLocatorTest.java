@@ -39,7 +39,7 @@ public class JarLocatorTest
     @Test
     public void mavenDocPath() {
         assertThat(
-                both.buildSourcePath(),
+                both.bazelSourcepath(),
                 contains(
                         mavenHome.resolve(
                                 "repository/com/external/external-library/1.2/external-library-1.2-sources.jar")));
@@ -49,7 +49,7 @@ public class JarLocatorTest
     @Test
     public void gradleDocPath() {
         assertThat(
-                gradle.buildSourcePath(),
+                gradle.bazelSourcepath(),
                 contains(
                         gradleHome.resolve(
                                 "caches/modules-2/files-2.1/com.external/external-library/1.2/yyy/external-library-1.2-sources.jar")));
@@ -66,7 +66,7 @@ public class JarLocatorTest
     @Test
     public void thisProjectDocPath() {
         assertThat(
-                thisProject.buildSourcePath(),
+                thisProject.bazelSourcepath(),
                 hasItem(hasToString(endsWith(".m2/repository/junit/junit/4.13.1/junit-4.13.1-sources.jar"))));
     }
 

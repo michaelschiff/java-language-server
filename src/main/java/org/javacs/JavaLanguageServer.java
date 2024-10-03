@@ -93,26 +93,21 @@ class JavaLanguageServer extends LanguageServer {
         var externalDependencies = externalDependencies();
         var classPath = classPath();
         var addExports = addExports();
-        // If classpath is specified by the user, don't infer anything
-        if (!classPath.isEmpty()) {
-            javaEndProgress();
-            return new JavaCompilerService(classPath, docPath(), addExports);
-        }
-        // Otherwise, combine inference with user-specified external dependencies
-        else {
-            JarLocator jarLocator = new JarLocator(workspaceRoot, externalDependencies);
+        JarLocator jarLocator = new JarLocator(workspaceRoot, externalDependencies);
 
-            javaReportProgress(new JavaReportProgressParams("Inferring class path"));
-            classPath = jarLocator.classPath();
+        javaReportProgress(new JavaReportProgressParams("Inferring class path"));
+        classPath = jarLocator.classPath();
 
-            javaReportProgress(new JavaReportProgressParams("Inferring doc path"));
-            var docPath = jarLocator.buildSourcePath();
+        javaReportProgress(new JavaReportProgressParams("Inferring source code paths"));
+        var sourcePaths = jarLocator.bazelSourcepath();
 
-            javaEndProgress();
+        javaReportProgress(new JavaReportProgressParams("Inferring source jar paths"));
+        var sourceJarPaths = jarLocator.bazelSourceJarPath();
+
+        javaEndProgress();
 //            docPath.clear();
 //            docPath.add(Path.of("bazel-out/darwin_arm64-fastbuild/bin/external/rules_jvm_external~~maven~maven/com/fasterxml/jackson/core/jackson-annotations/2.12.7/jackson-annotations-2.12.7-sources.jar"));
-            return new JavaCompilerService(classPath, docPath, addExports);
-        }
+        return new JavaCompilerService(classPath, sourcePaths, sourceJarPaths, addExports);
     }
 
     private Set<String> externalDependencies() {
@@ -316,6 +311,7 @@ class JavaLanguageServer extends LanguageServer {
             return Optional.empty();
         }
         List<Path> extractedPaths = new ArrayList<>();
+        LOG.info("found locations: " + found.size());
         for (Location loc : found) {
             LOG.info("definition location: " + loc.uri.toString());
         }

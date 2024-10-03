@@ -28,19 +28,19 @@ public class InferBazelConfigTest {
     @Test
     public void bazelDocPath() {
         var bazel = new JarLocator(Paths.get("src/test/examples/bazel-project"));
-        var docPath = bazel.buildSourcePath();
+        var docPath = bazel.bazelSourcepath();
         assertThat(docPath, contains(hasToString(endsWith("guava-18.0-sources.jar"))));
     }
 
     @Test
     public void bazelDocPathInSubdir() {
         var bazel = new JarLocator(Paths.get("src/test/examples/bazel-project/hello"));
-        assertThat(bazel.buildSourcePath(), contains(hasToString(endsWith("guava-18.0-sources.jar"))));
+        assertThat(bazel.bazelSourcepath(), contains(hasToString(endsWith("guava-18.0-sources.jar"))));
     }
 
     @Test
     public void bazelDocPathWithProtos() {
         var bazel = new JarLocator(Paths.get("src/test/examples/bazel-protos-project"));
-        assertThat(bazel.buildSourcePath(), hasItem(hasToString(endsWith("person_proto-speed-src.jar"))));
+        assertThat(bazel.bazelSourcepath(), hasItem(hasToString(endsWith("person_proto-speed-src.jar"))));
     }
 }

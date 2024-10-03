@@ -101,7 +101,7 @@ class CompileBatch implements AutoCloseable {
     private static ReusableCompiler.Borrow batchTask(
             JavaCompilerService parent, Collection<? extends JavaFileObject> sources) {
         parent.diags.clear();
-        var options = options(parent.classPath, parent.addExports);
+        var options = options(parent.buildJarPaths, parent.addExports);
         return parent.compiler.getTask(parent.fileManager, parent.diags::add, options, List.of(), sources);
     }
 
