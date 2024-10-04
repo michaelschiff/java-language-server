@@ -1,5 +1,6 @@
 package org.javacs;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.Collections;
@@ -19,9 +20,18 @@ public class BenchmarkPruner {
     public static class CompilerState {
         public SourceFileObject file = file(false);
         public SourceFileObject pruned = file(true);
-        public JavaCompilerService compiler = createCompiler();
+        public JavaCompilerService compiler;
 
-        private SourceFileObject file(boolean prune) {
+      {
+        try {
+          compiler = createCompiler();
+        }
+        catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+
+      private SourceFileObject file(boolean prune) {
             var file = Paths.get("src/main/java/org/javacs/InferConfig.java").normalize();
             if (prune) {
                 var task = compiler.parse(file);
@@ -32,7 +42,8 @@ public class BenchmarkPruner {
             }
         }
 
-        private static JavaCompilerService createCompiler() {
+        private static JavaCompilerService createCompiler() throws IOException
+        {
             LOG.info("Create new compiler...");
 
             var workspaceRoot = Paths.get(".").normalize().toAbsolutePath();

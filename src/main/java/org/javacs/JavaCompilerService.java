@@ -1,6 +1,8 @@
 package org.javacs;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.*;
 import java.util.*;
 import java.util.function.Predicate;
@@ -8,7 +10,7 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.tools.*;
 
-class JavaCompilerService implements CompilerProvider {
+public class JavaCompilerService implements CompilerProvider {
     // Not modifiable! If you want to edit these, you need to create a new instance
     final Set<Path> buildJarPaths, sourceCodePaths, sourceJarPaths;
     final Set<String> addExports;
@@ -21,7 +23,7 @@ class JavaCompilerService implements CompilerProvider {
     // TODO intercept files that aren't in the batch and erase method bodies so compilation is faster
     final SourceFileManager fileManager;
 
-    JavaCompilerService(Set<Path> classPath, Set<Path> sourcePaths, Set<Path> sourceJarPaths, Set<String> addExports)
+    public JavaCompilerService(Set<Path> classPath, Set<Path> sourcePaths, Set<Path> sourceJarPaths, Set<String> addExports)
         throws IOException
     {
         LOG.info(String.format("~~~Found %d compile time jars", classPath.size()));

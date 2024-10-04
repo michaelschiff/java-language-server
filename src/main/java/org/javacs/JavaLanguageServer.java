@@ -36,7 +36,7 @@ public class JavaLanguageServer extends LanguageServer {
     private JsonObject settings = new JsonObject();
     private boolean modifiedBuild = true;
 
-    private JavaCompilerService compiler() throws IOException
+    public JavaCompilerService compiler() throws IOException
     {
         if (needsCompiler()) {
             cacheCompiler = createCompiler();
