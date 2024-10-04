@@ -1,4 +1,5 @@
 #!/bin/sh
+JAVA_HOME=`/usr/libexec/java_home -v 18`
 JLINK_VM_OPTIONS="\
 --add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED \
 --add-exports jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED \

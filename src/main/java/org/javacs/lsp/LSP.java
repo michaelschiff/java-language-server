@@ -52,7 +52,6 @@ public class LSP {
             }
             return (char) c;
         } catch (IOException e) {
-            LOG.log(Level.SEVERE, "FUCK1");
             LOG.log(Level.SEVERE, e.getMessage(), e);
             throw new EndOfStream();
         }
@@ -197,7 +196,6 @@ public class LSP {
                     pending.put(endOfStream);
                     return true;
                 } catch (Exception e) {
-                    LOG.log(Level.SEVERE, "FUCK3");
                     LOG.log(Level.SEVERE, "Failed to put kill message onto queue, will try again...", e);
                     return false;
                 }
@@ -216,7 +214,6 @@ public class LSP {
                     } catch (EndOfStream __) {
                         if (kill()) return;
                     } catch (Exception e) {
-                        LOG.log(Level.SEVERE, "FUCK2");
                         LOG.log(Level.SEVERE, e.getMessage(), e);
                     }
                 }
@@ -236,7 +233,6 @@ public class LSP {
                 // Take a break periodically
                 r = pending.poll(200, TimeUnit.MILLISECONDS);
             } catch (Exception e) {
-                LOG.log(Level.SEVERE, "FUCK4");
                 LOG.log(Level.SEVERE, e.getMessage(), e);
                 continue;
             }
@@ -458,7 +454,6 @@ public class LSP {
                 }
             } catch (Exception e) {
                 LOG.log(Level.SEVERE, e.getStackTrace().toString());
-                LOG.log(Level.SEVERE, "FUCK5");
                 LOG.log(Level.SEVERE, e.getMessage(), e);
                 if (r.id != null) {
                     error(send, r.id, new ResponseError(ErrorCodes.InternalError, e.getMessage(), null));
