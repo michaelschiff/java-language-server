@@ -55,7 +55,7 @@ class JarLocator
             var outputBase = bazelOutputBase(bazelWorkspaceRoot);
             for (var relative : bazelAQuery(
                 bazelWorkspaceRoot,
-                "JavaSourceJar",
+                "Javac",
                 "--sources",
                 "java_library",
                 "java_test",

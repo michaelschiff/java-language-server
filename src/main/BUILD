@@ -16,7 +16,18 @@ java_binary(
 		"--add-exports jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED",
 		"--add-exports jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED",
 		"--add-exports jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED",
-		"--add-opens jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
 	],
+	add_opens = [
+		"jdk.compiler/com.sun.tools.javac.api",
+	],
+	add_exports = [
+		"jdk.compiler/com.sun.tools.javac.api",
+		"jdk.compiler/com.sun.tools.javac.code",
+		"jdk.compiler/com.sun.tools.javac.comp",
+		"jdk.compiler/com.sun.tools.javac.main",
+		"jdk.compiler/com.sun.tools.javac.tree",
+		"jdk.compiler/com.sun.tools.javac.model",
+		"jdk.compiler/com.sun.tools.javac.util",
+	]
 )
 
