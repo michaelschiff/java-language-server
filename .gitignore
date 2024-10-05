@@ -6,6 +6,7 @@
 /dist/mac
 /dist/windows
 /jdks
+/bazel-*
 
 /dependency-reduced-pom.xml
 /classpath.txt

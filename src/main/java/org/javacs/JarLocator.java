@@ -36,7 +36,7 @@ class JarLocator
 
     public Set<Path> classPath() {
         var bazelWorkspaceRoot = bazelWorkspaceRoot();
-        if (Files.exists(bazelWorkspaceRoot.resolve("WORKSPACE"))) {
+        if (Files.exists(bazelWorkspaceRoot.resolve("MODULE.bazel"))) {
             var absolute = new HashSet<Path>();
             for (var relative : bazelAQuery(bazelWorkspaceRoot, "Javac", "--classpath", "java_library", "java_test", "java_binary")) {
                 absolute.add(bazelWorkspaceRoot.resolve(relative));
@@ -50,7 +50,7 @@ class JarLocator
     public Set<Path> bazelSourcepath()
     {
         var bazelWorkspaceRoot = bazelWorkspaceRoot();
-        if (Files.exists(bazelWorkspaceRoot.resolve("WORKSPACE"))) {
+        if (Files.exists(bazelWorkspaceRoot.resolve("MODULE.bazel"))) {
             var absolute = new HashSet<Path>();
             var outputBase = bazelOutputBase(bazelWorkspaceRoot);
             for (var relative : bazelAQuery(
@@ -69,7 +69,7 @@ class JarLocator
 
     public Set<Path> bazelSourceJarPath() {
         var bazelWorkspaceRoot = bazelWorkspaceRoot();
-        if (Files.exists(bazelWorkspaceRoot.resolve("WORKSPACE"))) {
+        if (Files.exists(bazelWorkspaceRoot.resolve("MODULE.bazel"))) {
             Set<Path> res = new HashSet<>();
             for (String relative : bazelAQuery(
                 bazelWorkspaceRoot,
@@ -92,7 +92,7 @@ class JarLocator
 
     private Path bazelWorkspaceRoot() {
         for (var current = workspaceRoot; current != null; current = current.getParent()) {
-            if (Files.exists(current.resolve("WORKSPACE"))) {
+            if (Files.exists(current.resolve("MODULE.bazel"))) {
                 return current;
             }
         }
@@ -123,7 +123,7 @@ class JarLocator
             if (!kindUnion.isEmpty()) {
                 kindUnion += " union ";
             }
-            kindUnion += "kind(" + kind + ", //java/...)";
+            kindUnion += "kind(" + kind + ", //...)";
         }
         String[] command = {
             "bazel",

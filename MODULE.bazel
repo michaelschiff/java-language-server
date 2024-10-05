@@ -1,0 +1,16 @@
+module(name = "java-language-server", version = "1.0")
+
+bazel_dep(name = "rules_jvm_external", version = "6.4")
+bazel_dep(name = "rules_java", version = "7.8.0")
+maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
+maven.install(
+    artifacts = [
+	"com.google.code.gson:gson:2.8.9",
+	"com.google.protobuf:protobuf-java:3.19.6",
+    ],
+    fetch_sources = True,
+)
+use_repo(maven, "maven")
+maven.install(
+    lock_file = "//:maven_install.json",
+)

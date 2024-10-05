@@ -453,7 +453,6 @@ public class LSP {
                         LOG.warning(String.format("Don't know what to do with method `%s`", r.method));
                 }
             } catch (Exception e) {
-                LOG.log(Level.SEVERE, e.getStackTrace().toString());
                 LOG.log(Level.SEVERE, e.getMessage(), e);
                 if (r.id != null) {
                     error(send, r.id, new ResponseError(ErrorCodes.InternalError, e.getMessage(), null));
